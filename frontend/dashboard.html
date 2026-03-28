@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WellFlow — Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── Dashboard-specific ── */
+    .greeting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.4rem;
+    }
+    .greeting-sub { font-size: 0.8rem; color: var(--text-muted); font-weight: 300; }
+    .greeting-name {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 800;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    /* ── Progress card ── */
+    .progress-card {
+      padding: 1.2rem;
+      margin-bottom: 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .progress-info { flex: 1; }
+    .progress-title { font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+    .progress-headline { font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; }
+    .progress-chips { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .progress-chip {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .chip-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-done  { background: var(--green); }
+    .dot-doing { background: var(--cyan);  }
+    .dot-todo  { background: var(--text-faint); }
+
+    /* ── Habits list ── */
+    .habits-list { display: flex; flex-direction: column; gap: 8px; }
+
+    /* ── Filter tabs ── */
+    .filter-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 1rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+    .filter-tabs::-webkit-scrollbar { display: none; }
+    .filter-tab {
+      white-space: nowrap;
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      font-family: var(--font-body);
+      transition: all 0.18s;
+    }
+    .filter-tab.active {
+      background: var(--green);
+      color: #03140a;
+      border-color: var(--green);
+      font-weight: 700;
+    }
+
+    /* ── FAB ── */
+    .fab {
+      position: fixed;
+      bottom: 80px;
+      right: 50%;
+      transform: translateX(180px);
+      width: 54px; height: 54px;
+      border-radius: 50%;
+      background: var(--green);
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem;
+      color: #03140a;
+      box-shadow: 0 6px 24px rgba(0,230,118,0.4);
+      transition: all 0.2s;
+      text-decoration: none;
+      z-index: 50;
+    }
+    .fab:hover {
+      transform: translateX(180px) scale(1.08);
+      box-shadow: 0 8px 32px rgba(0,230,118,0.5);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-muted);
+    }
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .empty-state p { font-size: 0.9rem; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- Nav bar -->
+    <nav class="nav-bar">
+      <div class="brand-name" style="font-size:1.3rem;">Well<span>Flow</span></div>
+      <div class="nav-actions">
+        <a href="new-habit.html" class="btn btn-ghost btn-sm">+ Add</a>
+        <a href="profile.html"><div class="avatar" id="nav-avatar">?</div></a>
+      </div>
+    </nav>
+
+    <!-- Content -->
+    <main class="content">
+
+      <!-- Greeting -->
+      <div class="greeting-row anim-1">
+        <div>
+          <div class="greeting-sub" id="greeting-text">Good morning,</div>
+          <div class="greeting-name" id="greeting-name">— &nbsp;✦</div>
+        </div>
+      </div>
+
+      <!-- Progress card -->
+      <div class="card progress-card anim-2">
+        <div class="progress-ring-wrap">
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <defs>
+              <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="var(--cyan)" />
+                <stop offset="100%" stop-color="var(--green)" />
+              </linearGradient>
+            </defs>
+            <circle class="progress-ring-track" cx="40" cy="40" r="35" />
+            <circle class="progress-ring-fill" id="ring-fill" cx="40" cy="40" r="35"
+              style="stroke-dashoffset:220;" />
+          </svg>
+          <div class="progress-ring-label" id="ring-pct">0%</div>
+        </div>
+        <div class="progress-info">
+          <div class="progress-title">Today's Progress</div>
+          <div class="progress-headline" id="progress-headline">Loading…</div>
+          <div class="progress-chips" id="progress-chips"></div>
+        </div>
+      </div>
+
+      <!-- Habits section -->
+      <div class="anim-3">
+        <div class="section-header">
+          <span class="section-title">My Habits</span>
+          <a href="habits.html" class="see-all">See all →</a>
+        </div>
+
+        <!-- Filter -->
+        <div class="filter-tabs">
+          <button class="filter-tab active" onclick="filterHabits(this,'all')">All</button>
+          <button class="filter-tab" onclick="filterHabits(this,'todo')">To Do</button>
+          <button class="filter-tab" onclick="filterHabits(this,'doing')">Doing</button>
+          <button class="filter-tab" onclick="filterHabits(this,'done')">Done</button>
+        </div>
+
+        <div class="habits-list" id="habits-list"></div>
+      </div>
+
+    </main>
+
+    <!-- FAB -->
+    <a href="new-habit.html" class="fab" title="Add habit">+</a>
+
+    <!-- Tab bar -->
+    <nav class="tab-bar">
+      <a href="dashboard.html" class="tab-item active">
+        <span class="tab-icon">🏠</span>Home
+      </a>
+      <a href="habits.html" class="tab-item">
+        <span class="tab-icon">📋</span>Habits
+      </a>
+      <a href="new-habit.html" class="tab-item">
+        <span class="tab-icon">➕</span>Add
+      </a>
+      <a href="profile.html" class="tab-item">
+        <span class="tab-icon">👤</span>Profile
+      </a>
+    </nav>
+
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    Auth.require();
+    seedDemoData();
+
+    const user  = Auth.get();
+    let currentFilter = 'all';
+
+    // ── Greeting & avatar ──
+    document.getElementById('greeting-text').textContent = greeting() + ',';
+    const name = user?.username || 'User';
+    document.getElementById('greeting-name').innerHTML = `${name} <span>✦</span>`;
+    document.getElementById('nav-avatar').textContent = name.charAt(0).toUpperCase();
+
+    // ── Progress ──
+    function renderProgress() {
+      const { total, done, doing, todo, pct } = Tasks.todayStats();
+      document.getElementById('ring-pct').textContent = pct + '%';
+      const offset = 220 - (220 * pct / 100);
+      document.getElementById('ring-fill').style.strokeDashoffset = offset;
+      document.getElementById('progress-headline').textContent =
+        total === 0 ? 'No habits yet!' : `${done} out of ${total} tasks completed`;
+      document.getElementById('progress-chips').innerHTML = `
+        <div class="progress-chip"><span class="chip-dot dot-done"></span>${done} Done</div>
+        <div class="progress-chip"><span class="chip-dot dot-doing"></span>${doing} Doing</div>
+        <div class="progress-chip"><span class="chip-dot dot-todo"></span>${todo} To Do</div>
+      `;
+    }
+
+    // ── Habits list ──
+    function renderHabits(filter = 'all') {
+      const tasks = filter === 'all' ? Tasks.all() : Tasks.byStatus(filter);
+      const el = document.getElementById('habits-list');
+      if (tasks.length === 0) {
+        el.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🌱</div>
+            <p>No habits here yet.<br>Tap <strong>+</strong> to add your first one!</p>
+          </div>`;
+        return;
+      }
+      el.innerHTML = tasks.map(t => {
+        const cat = CAT_META[t.category] || { icon: '📌', cls: '' };
+        const badgeClass = { done: 'badge-done', doing: 'badge-doing', todo: 'badge-todo' }[t.status];
+        const badgeLabel = { done: '✓ Done', doing: '↻ Doing', todo: 'To Do' }[t.status];
+        const isDone = t.status === 'done';
+        return `
+          <div class="habit-item" onclick="cycleStatus(${t.id})">
+            <div class="check-circle ${isDone ? 'done' : ''}">
+              ${isDone ? '✓' : ''}
+            </div>
+            <div class="habit-icon ${cat.cls}">${t.icon || cat.icon}</div>
+            <div class="habit-info">
+              <div class="habit-title" style="${isDone ? 'text-decoration:line-through;opacity:.6' : ''}">${t.title}</div>
+              <div class="habit-sub">${t.sub || fmtDate(t.createdAt)}</div>
+            </div>
+            <span class="badge ${badgeClass}">${badgeLabel}</span>
+          </div>`;
+      }).join('');
+    }
+
+    function cycleStatus(id) {
+      const task = Tasks.all().find(t => t.id === id);
+      if (!task) return;
+      const cycle = { todo: 'doing', doing: 'done', done: 'todo' };
+      Tasks.update(id, { status: cycle[task.status] });
+      renderProgress();
+      renderHabits(currentFilter);
+      showToast('Status updated!');
+    }
+
+    function filterHabits(btn, filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderHabits(filter);
+    }
+
+    renderProgress();
+    renderHabits();
+  </script>
+</body>
+</html>

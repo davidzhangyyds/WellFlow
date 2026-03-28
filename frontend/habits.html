@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WellFlow — All Habits</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1.4rem;
+    }
+    .back-btn {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.18s;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .back-btn:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+
+    .page-title { font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; flex:1; }
+    .task-count { font-size: 0.8rem; color: var(--text-muted); font-weight: 400; margin-left: 6px; }
+
+    /* ── Search bar ── */
+    .search-wrap {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+    .search-wrap .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    .search-wrap input {
+      padding-left: 42px;
+      border-radius: 50px;
+    }
+
+    /* ── Habit item with actions ── */
+    .habit-item-row {
+      position: relative;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .habit-actions {
+      display: flex;
+      gap: 0;
+      position: absolute;
+      right: 0; top: 0; bottom: 0;
+      align-items: center;
+      transform: translateX(100%);
+      transition: transform 0.22s ease;
+    }
+    .habit-item-row.swiped .habit-actions { transform: translateX(0); }
+    .habit-item-row.swiped .habit-item    { margin-right: 100px; }
+
+    .action-btn {
+      width: 50px;
+      height: 100%;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.18s;
+    }
+    .action-btn:hover { opacity: 0.8; }
+    .action-edit   { background: var(--cyan-dim); }
+    .action-delete { background: #c0392b; }
+
+    .habit-item { transition: margin-right 0.22s ease; }
+
+    /* ── Sort select ── */
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .toolbar select {
+      padding: 7px 12px;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      padding-left: 12px;
+      cursor: pointer;
+      appearance: none;
+    }
+    .toolbar .filter-tab { flex-shrink: 0; }
+
+    /* ── Edit inline form ── */
+    .edit-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: flex-end; justify-content: center;
+      z-index: 200;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+      padding: 0;
+    }
+    .edit-overlay.open { opacity: 1; pointer-events: all; }
+    .edit-sheet {
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding: 1.6rem 1.4rem 2rem;
+      width: 100%;
+      max-width: 480px;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+    }
+    .edit-overlay.open .edit-sheet { transform: translateY(0); }
+    .sheet-handle {
+      width: 40px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 1.4rem;
+    }
+    .edit-form { display: flex; flex-direction: column; gap: 1rem; }
+    .edit-title { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; margin-bottom: 0.6rem; }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-muted);
+    }
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- Nav bar -->
+    <nav class="nav-bar">
+      <div class="brand-name" style="font-size:1.3rem;">Well<span>Flow</span></div>
+      <div class="nav-actions">
+        <a href="new-habit.html" class="btn btn-ghost btn-sm">+ Add</a>
+        <a href="profile.html"><div class="avatar" id="nav-avatar">?</div></a>
+      </div>
+    </nav>
+
+    <main class="content">
+
+      <!-- Header -->
+      <div class="page-header anim-1">
+        <a href="dashboard.html" class="back-btn">←</a>
+        <div class="page-title">All Habits<span class="task-count" id="task-count"></span></div>
+      </div>
+
+      <!-- Search -->
+      <div class="search-wrap anim-2">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Search habits…" oninput="renderList()" />
+      </div>
+
+      <!-- Toolbar: filter + sort -->
+      <div class="toolbar anim-3">
+        <button class="filter-tab active" onclick="setFilter(this,'all')">All</button>
+        <button class="filter-tab" onclick="setFilter(this,'todo')">To Do</button>
+        <button class="filter-tab" onclick="setFilter(this,'doing')">Doing</button>
+        <button class="filter-tab" onclick="setFilter(this,'done')">Done</button>
+        <select id="sort-select" class="no-icon" onchange="renderList()" style="margin-left:auto;">
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="alpha">A–Z</option>
+        </select>
+      </div>
+
+      <!-- List -->
+      <div id="habits-container" class="anim-4"></div>
+
+    </main>
+
+    <!-- Tab bar -->
+    <nav class="tab-bar">
+      <a href="dashboard.html" class="tab-item">
+        <span class="tab-icon">🏠</span>Home
+      </a>
+      <a href="habits.html" class="tab-item active">
+        <span class="tab-icon">📋</span>Habits
+      </a>
+      <a href="new-habit.html" class="tab-item">
+        <span class="tab-icon">➕</span>Add
+      </a>
+      <a href="profile.html" class="tab-item">
+        <span class="tab-icon">👤</span>Profile
+      </a>
+    </nav>
+
+  </div>
+
+  <!-- Edit bottom sheet -->
+  <div class="edit-overlay" id="edit-overlay" onclick="closeEditOutside(event)">
+    <div class="edit-sheet">
+      <div class="sheet-handle"></div>
+      <div class="edit-title">Edit Habit</div>
+      <div class="edit-form">
+        <input type="hidden" id="edit-id" />
+        <div class="form-group">
+          <label class="form-label">Title</label>
+          <div class="input-wrap">
+            <span class="icon" id="edit-icon-preview">📌</span>
+            <input type="text" id="edit-title" placeholder="Habit name" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <div class="status-toggle">
+            <button type="button" class="status-btn" data-status="todo"  onclick="editSelectStatus(this)">To Do</button>
+            <button type="button" class="status-btn" data-status="doing" onclick="editSelectStatus(this)">Doing</button>
+            <button type="button" class="status-btn" data-status="done"  onclick="editSelectStatus(this)">Done</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Time</label>
+          <div class="input-wrap">
+            <span class="icon">⏰</span>
+            <input type="time" id="edit-time" />
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button class="btn btn-ghost" style="flex:1" onclick="closeEdit()">Cancel</button>
+          <button class="btn btn-primary" style="flex:1" onclick="saveEdit()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    Auth.require();
+    seedDemoData();
+
+    const user = Auth.get();
+    document.getElementById('nav-avatar').textContent = (user?.username || 'U').charAt(0).toUpperCase();
+
+    let currentFilter  = 'all';
+    let editingStatus  = 'todo';
+
+    function setFilter(btn, f) {
+      currentFilter = f;
+      document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderList();
+    }
+
+    function renderList() {
+      const query = document.getElementById('search-input').value.toLowerCase();
+      const sort  = document.getElementById('sort-select').value;
+      let tasks   = Tasks.all();
+
+      // Filter by status
+      if (currentFilter !== 'all') tasks = tasks.filter(t => t.status === currentFilter);
+
+      // Search
+      if (query) tasks = tasks.filter(t => t.title.toLowerCase().includes(query));
+
+      // Sort
+      if (sort === 'oldest') tasks = [...tasks].reverse();
+      else if (sort === 'alpha') tasks = [...tasks].sort((a,b) => a.title.localeCompare(b.title));
+
+      document.getElementById('task-count').textContent = ` (${tasks.length})`;
+
+      const container = document.getElementById('habits-container');
+      if (tasks.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <p>No habits match this filter.<br>Try adjusting your search or add a new habit!</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = tasks.map(t => {
+        const cat = CAT_META[t.category] || { icon: '📌', cls: '' };
+        const badgeClass = { done: 'badge-done', doing: 'badge-doing', todo: 'badge-todo' }[t.status];
+        const badgeLabel = { done: '✓ Done', doing: '↻ Doing', todo: 'To Do' }[t.status];
+        const isDone = t.status === 'done';
+        return `
+          <div class="habit-item-row" id="row-${t.id}">
+            <div class="habit-item" onclick="cycleStatus(${t.id})">
+              <div class="check-circle ${isDone ? 'done' : ''}">${isDone ? '✓' : ''}</div>
+              <div class="habit-icon ${cat.cls}">${t.icon || cat.icon}</div>
+              <div class="habit-info">
+                <div class="habit-title" style="${isDone ? 'text-decoration:line-through;opacity:.6' : ''}">${t.title}</div>
+                <div class="habit-sub">${t.sub || ''}</div>
+              </div>
+              <span class="badge ${badgeClass}">${badgeLabel}</span>
+            </div>
+            <div class="habit-actions">
+              <button class="action-btn action-edit"   onclick="openEdit(${t.id}, event)" title="Edit">✏️</button>
+              <button class="action-btn action-delete" onclick="deleteTask(${t.id}, event)" title="Delete">🗑</button>
+            </div>
+          </div>`;
+      }).join('');
+
+      // Long-press / swipe reveal
+      document.querySelectorAll('.habit-item-row').forEach(row => {
+        let pressTimer;
+        row.addEventListener('mousedown', () => {
+          pressTimer = setTimeout(() => row.classList.toggle('swiped'), 500);
+        });
+        row.addEventListener('mouseup', () => clearTimeout(pressTimer));
+        row.addEventListener('mouseleave', () => clearTimeout(pressTimer));
+      });
+    }
+
+    function cycleStatus(id) {
+      const task = Tasks.all().find(t => t.id === id);
+      if (!task) return;
+      const cycle = { todo: 'doing', doing: 'done', done: 'todo' };
+      Tasks.update(id, { status: cycle[task.status] });
+      renderList();
+      showToast('Status updated!');
+    }
+
+    function deleteTask(id, e) {
+      e.stopPropagation();
+      // TODO: DELETE /api/tasks/:id
+      Tasks.delete(id);
+      document.getElementById('row-' + id)?.remove();
+      renderList();
+      showToast('Habit deleted.', 'error');
+    }
+
+    function openEdit(id, e) {
+      e.stopPropagation();
+      const task = Tasks.all().find(t => t.id === id);
+      if (!task) return;
+      document.getElementById('edit-id').value     = id;
+      document.getElementById('edit-title').value  = task.title;
+      document.getElementById('edit-time').value   = task.scheduledTime || '08:00';
+      document.getElementById('edit-icon-preview').textContent = task.icon || '📌';
+      editingStatus = task.status;
+
+      document.querySelectorAll('.status-btn').forEach(b => {
+        b.className = 'status-btn';
+        if (b.dataset.status === editingStatus) b.classList.add('active-' + editingStatus);
+      });
+      document.getElementById('edit-overlay').classList.add('open');
+    }
+
+    function editSelectStatus(btn) {
+      editingStatus = btn.dataset.status;
+      document.querySelectorAll('.status-btn').forEach(b => b.className = 'status-btn');
+      btn.classList.add('active-' + editingStatus);
+    }
+
+    function saveEdit() {
+      const id    = parseInt(document.getElementById('edit-id').value);
+      const title = document.getElementById('edit-title').value.trim();
+      const time  = document.getElementById('edit-time').value;
+      if (!title) { showToast('Title cannot be empty.', 'error'); return; }
+
+      // TODO: PUT /api/tasks/:id  { title, status: editingStatus, scheduledTime: time }
+      Tasks.update(id, { title, status: editingStatus, scheduledTime: time });
+      closeEdit();
+      renderList();
+      showToast('Habit updated! ✓');
+    }
+
+    function closeEdit() { document.getElementById('edit-overlay').classList.remove('open'); }
+    function closeEditOutside(e) { if (e.target === document.getElementById('edit-overlay')) closeEdit(); }
+
+    renderList();
+  </script>
+</body>
+</html>

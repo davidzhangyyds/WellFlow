@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WellFlow — Sign In</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── Login-specific ── */
+    .login-card {
+      width: 100%;
+      max-width: 400px;
+      padding: 2.4rem 2rem;
+    }
+
+    .logo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2.4rem;
+    }
+
+    .logo-icon {
+      width: 72px; height: 72px;
+      border-radius: 20px;
+      background: linear-gradient(145deg, #0d1a3a, #162045);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 0 1px rgba(0,188,212,0.2), 0 0 40px rgba(0,230,118,0.1);
+      margin-bottom: 8px;
+      font-size: 2rem;
+    }
+
+    .tabs-row {
+      display: flex;
+      background: rgba(255,255,255,0.04);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      margin-bottom: 1.8rem;
+      border: 1px solid var(--border);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 9px;
+      border: none;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: var(--font-body);
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--navy-deep);
+      color: var(--text-primary);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    .form-stack { display: flex; flex-direction: column; gap: 1.1rem; }
+
+    .forgot-link {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+    .forgot-link span { color: var(--green); font-weight: 500; cursor: pointer; }
+    .forgot-link span:hover { text-decoration: underline; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .terms {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-faint);
+      margin-top: 0.6rem;
+    }
+    .terms a { color: var(--cyan); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <div class="login-card card anim-1">
+
+      <!-- Logo -->
+      <div class="logo-wrap anim-2">
+        <div class="logo-icon">🌱</div>
+        <div class="brand-name">Well<span>Flow</span></div>
+        <div class="brand-tagline">Track · Habit · Thrive</div>
+      </div>
+
+      <!-- Sign In / Register tabs -->
+      <div class="tabs-row anim-3">
+        <button class="tab-btn active" onclick="switchTab('signin')">Sign In</button>
+        <button class="tab-btn" onclick="switchTab('register')">Register</button>
+      </div>
+
+      <!-- Sign In panel -->
+      <div id="panel-signin" class="panel active">
+        <div id="error-signin" class="alert alert-error" style="display:none;margin-bottom:1rem;"></div>
+        <div class="form-stack anim-4">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <div class="input-wrap">
+              <span class="icon">✉️</span>
+              <input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="input-wrap">
+              <span class="icon">🔒</span>
+              <input type="password" id="signin-pwd" placeholder="••••••••" autocomplete="current-password" />
+            </div>
+          </div>
+          <button class="btn btn-primary btn-full anim-5" onclick="handleSignIn()">Sign In</button>
+          <p class="forgot-link anim-5">Forgot your password? <span onclick="showForgot()">Reset</span></p>
+        </div>
+      </div>
+
+      <!-- Register panel -->
+      <div id="panel-register" class="panel">
+        <div id="error-register" class="alert alert-error" style="display:none;margin-bottom:1rem;"></div>
+        <div class="form-stack">
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <div class="input-wrap">
+              <span class="icon">👤</span>
+              <input type="text" id="reg-username" placeholder="yourname" autocomplete="username" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <div class="input-wrap">
+              <span class="icon">✉️</span>
+              <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="input-wrap">
+              <span class="icon">🔒</span>
+              <input type="password" id="reg-pwd" placeholder="Min. 8 characters" autocomplete="new-password" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirm Password</label>
+            <div class="input-wrap">
+              <span class="icon">🔒</span>
+              <input type="password" id="reg-pwd2" placeholder="Repeat password" autocomplete="new-password" />
+            </div>
+          </div>
+          <button class="btn btn-primary btn-full" onclick="handleRegister()">Create Account</button>
+          <p class="terms">By registering you agree to our <a href="#">Terms</a> &amp; <a href="#">Privacy Policy</a></p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    // Redirect if already logged in
+    if (Auth.isLoggedIn()) window.location.href = 'dashboard.html';
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach((b, i) => {
+        b.classList.toggle('active', (i === 0 && tab === 'signin') || (i === 1 && tab === 'register'));
+      });
+      document.getElementById('panel-signin').classList.toggle('active', tab === 'signin');
+      document.getElementById('panel-register').classList.toggle('active', tab === 'register');
+    }
+
+    function showError(panelId, msg) {
+      const el = document.getElementById('error-' + panelId);
+      el.textContent = '⚠ ' + msg;
+      el.style.display = 'flex';
+    }
+    function hideError(panelId) {
+      document.getElementById('error-' + panelId).style.display = 'none';
+    }
+
+    function handleSignIn() {
+      hideError('signin');
+      const email = document.getElementById('signin-email').value.trim();
+      const pwd   = document.getElementById('signin-pwd').value;
+      if (!email || !pwd) { showError('signin', 'Please fill in all fields.'); return; }
+      if (!email.includes('@')) { showError('signin', 'Enter a valid email address.'); return; }
+
+      // TODO: Replace with real API call: POST /api/auth/login
+      // const res = await fetch('/api/auth/login', { method:'POST', body: JSON.stringify({email, password: pwd}), headers: {'Content-Type':'application/json'} });
+      // const data = await res.json();
+
+      // Demo login simulation
+      const username = email.split('@')[0];
+      Auth.save({ username, email, token: 'demo_token_' + Date.now() });
+      seedDemoData();
+      window.location.href = 'dashboard.html';
+    }
+
+    function handleRegister() {
+      hideError('register');
+      const username = document.getElementById('reg-username').value.trim();
+      const email    = document.getElementById('reg-email').value.trim();
+      const pwd      = document.getElementById('reg-pwd').value;
+      const pwd2     = document.getElementById('reg-pwd2').value;
+
+      if (!username || !email || !pwd || !pwd2) { showError('register', 'Please fill in all fields.'); return; }
+      if (!email.includes('@'))  { showError('register', 'Enter a valid email address.'); return; }
+      if (pwd.length < 8)        { showError('register', 'Password must be at least 8 characters.'); return; }
+      if (pwd !== pwd2)          { showError('register', 'Passwords do not match.'); return; }
+
+      // TODO: Replace with real API call: POST /api/auth/register
+      Auth.save({ username, email, token: 'demo_token_' + Date.now() });
+      seedDemoData();
+      window.location.href = 'dashboard.html';
+    }
+
+    function showForgot() {
+      alert('Password reset — connect this to POST /api/auth/forgot-password');
+    }
+
+    // Enter key support
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      if (document.getElementById('panel-signin').classList.contains('active')) handleSignIn();
+      else handleRegister();
+    });
+  </script>
+</body>
+</html>
