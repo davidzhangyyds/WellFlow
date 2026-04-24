@@ -1,5 +1,8 @@
 require('dotenv').config()          // charge le .env en premier
 
+// Servir le frontend (Vue.js) depuis Express
+const path = require('path')
+
 const express = require('express')
 const helmet  = require('helmet')
 const cors    = require('cors')
@@ -15,6 +18,8 @@ app.get('/api/hello', (req, res) => {
 });
 
 
+app.use(express.static(path.join(__dirname, '../wellflow-vue/dist')));
+
 // Middlewares globaux
 app.use(helmet())                   // sécurité HTTP
 app.use(cors({ origin: 'http://localhost:5173' }))  // autorise Vue.js
@@ -24,6 +29,11 @@ app.use(express.json())             // lit le JSON dans req.body
 app.use('/api/auth',  authRoutes)
 app.use('/api/tasks', taskRoutes)
 app.use('/api/user',  userRoutes)
+
+// Route de fallback (wildcard) pour le frontend (SPA)
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, '../wellflow-vue/dist/index.html'));
+});
 
 // Démarrage
 const PORT = process.env.PORT || 3000
