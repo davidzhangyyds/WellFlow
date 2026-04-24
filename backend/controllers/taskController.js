@@ -65,10 +65,17 @@ exports.createTask = async (req, res) => {
     const validStatuses = ['todo', 'doing', 'done']
     const taskStatus = status && validStatuses.includes(status) ? status : 'todo'
 
+    // Convert time format "HH:MM" to DATETIME if provided
+    let scheduledDateTime = null
+    if (scheduled_time) {
+      const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+      scheduledDateTime = `${today} ${scheduled_time}:00`
+    }
+
     const [result] = await pool.execute(
       `INSERT INTO task (user_id, category_id, title, description, status, scheduled_time)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [user_id, category_id || null, title, description || null, taskStatus, scheduled_time || null]
+      [user_id, category_id || null, title, description || null, taskStatus, scheduledDateTime]
     )
 
     res.status(201).json({
@@ -103,13 +110,22 @@ exports.updateTask = async (req, res) => {
       return res.status(400).json({ error: 'Invalid status value' })
     }
 
+    // Convert time format "HH:MM" to DATETIME if provided
+    let scheduledDateTime = null
+    if (scheduled_time && scheduled_time.includes(':')) {
+      const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+      scheduledDateTime = `${today} ${scheduled_time}:00`
+    } else if (scheduled_time) {
+      scheduledDateTime = scheduled_time
+    }
+
     await pool.execute(
       `UPDATE task
        SET title = ?, description = ?, status = ?, category_id = ?,
            scheduled_time = ?, updated_at = NOW()
        WHERE task_id = ? AND user_id = ?`,
       [title, description || null, status, category_id || null,
-       scheduled_time || null, id, user_id]
+       scheduledDateTime, id, user_id]
     )
 
     res.status(200).json({ message: 'Task updated' })
@@ -164,7 +180,7 @@ exports.deleteTask = async (req, res) => {
       return res.status(404).json({ error: 'Task not found' })
     }
 
-    res.status(204).send()
+    res.status(200).json({ message: 'Task deleted successfully' })
 
   } catch (err) {
     console.error('DeleteTask error:', err)

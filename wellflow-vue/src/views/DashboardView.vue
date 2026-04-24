@@ -88,7 +88,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useTasksStore } from '@/stores/tasks'
@@ -103,7 +103,16 @@ const taskStore = useTasksStore()
 const toastStore = useToastStore()
 const { greeting } = useGreeting()
 
-taskStore.seedDemo()
+// Load tasks from server on component mount
+onMounted(async () => {
+  try {
+    await taskStore.fetchTasks()
+  } catch (error) {
+    console.error('Failed to load tasks:', error)
+    // Fallback to demo if fetch fails
+    taskStore.seedDemo()
+  }
+})
 
 const greetingText  = greeting()
 const currentFilter = ref('all')

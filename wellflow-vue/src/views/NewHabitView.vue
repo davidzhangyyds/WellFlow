@@ -143,19 +143,20 @@ async function submitHabit() {
   errors.title = ''
   if (!form.title.trim()) { errors.title = 'Please enter a task name.'; return }
 
-  // TODO: POST /api/tasks
-  await taskStore.addTask({
-    title:         form.title.trim(),
-    category:      form.category,
-    icon:          selectedIcon.value,
-    sub:           form.time + (form.description ? ' · ' + form.description.substring(0, 40) : ''),
-    status:        form.status,
-    scheduledTime: form.time,
-    description:   form.description,
-  })
+  try {
+    await taskStore.addTask({
+      title:           form.title.trim(),
+      description:     form.description,
+      status:          form.status,
+      scheduled_time:  form.time,
+    })
 
-  toastStore.show('Habit added! 🌱')
-  setTimeout(() => router.push('/dashboard'), 700)
+    toastStore.show('Habit added! 🌱')
+    setTimeout(() => router.push('/dashboard'), 700)
+  } catch (error) {
+    console.error('Error creating task:', error)
+    toastStore.show('❌ Failed to add habit')
+  }
 }
 </script>
 

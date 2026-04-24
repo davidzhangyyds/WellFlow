@@ -14,31 +14,37 @@ export const useAuthStore = defineStore('auth', () => {
 
   // ── Actions ────────────────────────────────────
   async function login(email, password) {
-    // TODO: replace demo with real API call
-    // const { data } = await api.post('/auth/login', { email, password })
-    // saveSession(data.user, data.token)
-
-    // Demo simulation
-    const demoUser = { username: email.split('@')[0], email }
-    const demoToken = 'demo_token_' + Date.now()
-    saveSession(demoUser, demoToken)
+    try {
+      const { data } = await api.post('/auth/login', { email, password })
+      saveSession(data.user, data.token)
+      return data
+    } catch (error) {
+      clearSession()
+      throw error
+    }
   }
 
   async function register(username, email, password) {
-    // TODO: replace demo with real API call
-    // const { data } = await api.post('/auth/register', { username, email, password })
-    // saveSession(data.user, data.token)
-
-    // Demo simulation
-    const demoUser = { username, email }
-    const demoToken = 'demo_token_' + Date.now()
-    saveSession(demoUser, demoToken)
+    try {
+      const { data } = await api.post('/auth/register', { username, email, password })
+      // Auto-login after successful registration
+      const loginResponse = await api.post('/auth/login', { email, password })
+      saveSession(loginResponse.data.user, loginResponse.data.token)
+      return loginResponse.data
+    } catch (error) {
+      clearSession()
+      throw error
+    }
   }
 
   async function logout() {
-    // TODO: POST /api/auth/logout to revoke server-side session
-    // await api.post('/auth/logout')
-    clearSession()
+    try {
+      await api.post('/auth/logout')
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      clearSession()
+    }
   }
 
   // ── Helpers ────────────────────────────────────

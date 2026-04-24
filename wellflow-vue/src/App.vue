@@ -10,6 +10,7 @@
       </Transition>
     </Teleport>
   </div>
+  
 </template>
 
 <script setup>
@@ -18,6 +19,24 @@ import { useToastStore } from '@/stores/toast'
 import { storeToRefs } from 'pinia'
 
 const { toast } = storeToRefs(useToastStore())
+
+import { onMounted, ref } from 'vue'
+
+const message = ref('Chargement...')
+
+onMounted(async () => {
+  try {
+    // Le proxy de vite.config.js transformera ceci 
+    // en http://localhost:3000/api/hello
+    const response = await fetch('/api/hello') 
+    const data = await response.json()
+    message.value = data.text
+  } catch (error) {
+    console.error("Erreur lors de l'appel API :", error)
+    message.value = "Erreur de connexion au serveur"
+  }
+})
+
 </script>
 
 <style>

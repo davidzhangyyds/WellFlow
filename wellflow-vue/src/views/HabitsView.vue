@@ -104,7 +104,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useTasksStore } from '@/stores/tasks'
 import { useToastStore } from '@/stores/toast'
@@ -114,6 +114,15 @@ import HabitItem from '@/components/HabitItem.vue'
 
 const taskStore  = useTasksStore()
 const toastStore = useToastStore()
+
+// Load tasks from server on component mount
+onMounted(async () => {
+  try {
+    await taskStore.fetchTasks()
+  } catch (error) {
+    console.error('Failed to load tasks:', error)
+  }
+})
 
 const search        = ref('')
 const currentFilter = ref('all')
@@ -170,7 +179,7 @@ function openEdit(task) {
   editForm.id     = task.id
   editForm.title  = task.title
   editForm.status = task.status
-  editForm.time   = task.scheduledTime || '08:00'
+  editForm.time   = task.scheduled_time?.slice(11, 16) || '08:00' // Extract HH:MM from DATETIME
   editForm.icon   = task.icon || '📌'
   editOverlay.value = true
 }
@@ -184,9 +193,9 @@ async function saveEdit() {
 
   // TODO: PUT /api/tasks/:id
   await taskStore.updateTask(editForm.id, {
-    title:         editForm.title.trim(),
-    status:        editForm.status,
-    scheduledTime: editForm.time,
+    title:           editForm.title.trim(),
+    status:          editForm.status,
+    scheduled_time:  editForm.time,
   })
 
   closeEdit()

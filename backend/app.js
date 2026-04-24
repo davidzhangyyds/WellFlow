@@ -10,6 +10,11 @@ const userRoutes = require('./routes/user')
 
 const app = express()
 
+app.get('/api/hello', (req, res) => {
+  res.json({ text: "Salut depuis le backend !" });
+});
+
+
 // Middlewares globaux
 app.use(helmet())                   // sécurité HTTP
 app.use(cors({ origin: 'http://localhost:5173' }))  // autorise Vue.js
