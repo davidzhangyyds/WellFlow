@@ -10,7 +10,7 @@
       <div class="habit-title" :style="task.status === 'done' ? 'text-decoration:line-through;opacity:.6' : ''">
         {{ task.title }}
       </div>
-      <div class="habit-sub">{{ task.sub || fmtDate(task.createdAt) }}</div>
+      <div class="habit-sub">{{ displaySubtext }}</div>
     </div>
     <span class="badge" :class="badgeClass">{{ badgeLabel }}</span>
     <slot name="actions" />
@@ -40,4 +40,19 @@ const badgeLabel = computed(() => ({
   doing: '↻ Doing',
   todo:  'To Do'
 }[props.task.status]))
+
+// Extract and format the scheduled time (HH:MM)
+const displaySubtext = computed(() => {
+  // If there's custom sub text, use that
+  if (props.task.sub) return props.task.sub
+  
+  // If there's a scheduled time, extract HH:MM
+  if (props.task.scheduled_time) {
+    const time = props.task.scheduled_time.slice(11, 16) // Extract HH:MM from "YYYY-MM-DD HH:MM:SS"
+    return time || fmtDate(props.task.createdAt)
+  }
+  
+  // Fallback to creation date
+  return fmtDate(props.task.createdAt)
+})
 </script>

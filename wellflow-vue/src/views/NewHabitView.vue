@@ -148,6 +148,7 @@ async function submitHabit() {
       title:           form.title.trim(),
       description:     form.description,
       status:          form.status,
+      category:        form.category,
       scheduled_time:  form.time,
     })
 

@@ -1,5 +1,32 @@
 const pool = require('../config/db')
 
+// Format DATETIME to MySQL format string for JSON serialization
+function formatDateTime(date) {
+  if (!date) return null
+  if (typeof date === 'string') return date
+  // If it's a Date object from MySQL, convert to YYYY-MM-DD HH:MM:SS format
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+// Map category_id to category name for frontend display
+function idToCategoryName(categoryId) {
+  const categoryMap = {
+    1: 'sport',
+    2: 'mental',
+    3: 'hydration',
+    4: 'sleep',
+    5: 'nutrition',
+    6: 'break',
+  }
+  return categoryMap[categoryId] || null
+}
+
 // ── GET /api/tasks ────────────────────────────
 exports.getTasks = async (req, res) => {
   try {
@@ -21,7 +48,15 @@ exports.getTasks = async (req, res) => {
     query += ' ORDER BY created_at DESC'
 
     const [tasks] = await pool.execute(query, params)
-    res.status(200).json(tasks)
+    // Format datetime fields and add category name for JSON serialization
+    const formattedTasks = tasks.map(t => ({
+      ...t,
+      category: idToCategoryName(t.category_id),
+      scheduled_time: formatDateTime(t.scheduled_time),
+      created_at: formatDateTime(t.created_at),
+      updated_at: formatDateTime(t.updated_at)
+    }))
+    res.status(200).json(formattedTasks)
 
   } catch (err) {
     console.error('GetTasks error:', err)
@@ -44,7 +79,17 @@ exports.getTaskById = async (req, res) => {
       return res.status(404).json({ error: 'Task not found' })
     }
 
-    res.status(200).json(tasks[0])
+    const task = tasks[0]
+    // Format datetime fields and add category name for JSON serialization
+    const formattedTask = {
+      ...task,
+      category: idToCategoryName(task.category_id),
+      scheduled_time: formatDateTime(task.scheduled_time),
+      created_at: formatDateTime(task.created_at),
+      updated_at: formatDateTime(task.updated_at)
+    }
+
+    res.status(200).json(formattedTask)
 
   } catch (err) {
     console.error('GetTaskById error:', err)
@@ -56,7 +101,7 @@ exports.getTaskById = async (req, res) => {
 exports.createTask = async (req, res) => {
   try {
     const { user_id }  = req.user
-    const { title, description, status, category_id, scheduled_time } = req.body
+    const { title, description, status, category_id, category, scheduled_time } = req.body
 
     if (!title) {
       return res.status(400).json({ error: 'Title is required' })
@@ -65,17 +110,37 @@ exports.createTask = async (req, res) => {
     const validStatuses = ['todo', 'doing', 'done']
     const taskStatus = status && validStatuses.includes(status) ? status : 'todo'
 
+    // Resolve category_id from category name if provided
+    let finalCategoryId = category_id
+    if (category && !category_id) {
+      // Map category name to ID (case-insensitive)
+      const categoryMap = {
+        'sport': 1,
+        'mental': 2,
+        'hydration': 3,
+        'sleep': 4,
+        'nutrition': 5,
+        'break': 6,
+      }
+      finalCategoryId = categoryMap[category.toLowerCase()] || null
+    }
+
     // Convert time format "HH:MM" to DATETIME if provided
     let scheduledDateTime = null
     if (scheduled_time) {
-      const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+      // Use local date (not UTC) to match the user's timezone
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      const today = `${year}-${month}-${day}`
       scheduledDateTime = `${today} ${scheduled_time}:00`
     }
 
     const [result] = await pool.execute(
       `INSERT INTO task (user_id, category_id, title, description, status, scheduled_time)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [user_id, category_id || null, title, description || null, taskStatus, scheduledDateTime]
+      [user_id, finalCategoryId || null, title, description || null, taskStatus, scheduledDateTime]
     )
 
     res.status(201).json({
@@ -94,7 +159,7 @@ exports.updateTask = async (req, res) => {
   try {
     const { user_id } = req.user
     const { id }      = req.params
-    const { title, description, status, category_id, scheduled_time } = req.body
+    const { title, description, status, category_id, category, scheduled_time } = req.body
 
     // Verify ownership
     const [existing] = await pool.execute(
@@ -110,10 +175,30 @@ exports.updateTask = async (req, res) => {
       return res.status(400).json({ error: 'Invalid status value' })
     }
 
+    // Resolve category_id from category name if provided
+    let finalCategoryId = category_id
+    if (category && !category_id) {
+      // Map category name to ID (case-insensitive)
+      const categoryMap = {
+        'sport': 1,
+        'mental': 2,
+        'hydration': 3,
+        'sleep': 4,
+        'nutrition': 5,
+        'break': 6,
+      }
+      finalCategoryId = categoryMap[category.toLowerCase()] || null
+    }
+
     // Convert time format "HH:MM" to DATETIME if provided
     let scheduledDateTime = null
     if (scheduled_time && scheduled_time.includes(':')) {
-      const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+      // Use local date (not UTC) to match the user's timezone
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      const today = `${year}-${month}-${day}`
       scheduledDateTime = `${today} ${scheduled_time}:00`
     } else if (scheduled_time) {
       scheduledDateTime = scheduled_time
@@ -124,7 +209,7 @@ exports.updateTask = async (req, res) => {
        SET title = ?, description = ?, status = ?, category_id = ?,
            scheduled_time = ?, updated_at = NOW()
        WHERE task_id = ? AND user_id = ?`,
-      [title, description || null, status, category_id || null,
+      [title, description || null, status, finalCategoryId || null,
        scheduledDateTime, id, user_id]
     )
 

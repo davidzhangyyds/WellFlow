@@ -129,7 +129,7 @@ const currentFilter = ref('all')
 const sortBy        = ref('newest')
 const editOverlay   = ref(false)
 
-const editForm = reactive({ id: null, title: '', status: 'todo', time: '08:00', icon: '📌' })
+const editForm = reactive({ id: null, title: '', status: 'todo', time: '08:00', icon: '📌', category: '' })
 
 const filters = [
   { value: 'all',   label: 'All'   },
@@ -176,11 +176,12 @@ function handleDelete(id) {
 }
 
 function openEdit(task) {
-  editForm.id     = task.id
-  editForm.title  = task.title
-  editForm.status = task.status
-  editForm.time   = task.scheduled_time?.slice(11, 16) || '08:00' // Extract HH:MM from DATETIME
-  editForm.icon   = task.icon || '📌'
+  editForm.id       = task.id
+  editForm.title    = task.title
+  editForm.status   = task.status
+  editForm.category = task.category || 'sport'
+  editForm.time     = task.scheduled_time?.slice(11, 16) || '08:00' // Extract HH:MM from DATETIME
+  editForm.icon     = task.icon || '📌'
   editOverlay.value = true
 }
 
@@ -195,6 +196,7 @@ async function saveEdit() {
   await taskStore.updateTask(editForm.id, {
     title:           editForm.title.trim(),
     status:          editForm.status,
+    category:        editForm.category,
     scheduled_time:  editForm.time,
   })
 

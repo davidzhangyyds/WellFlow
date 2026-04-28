@@ -1,3 +1,3 @@
 USE wellflow;
-DELETE FROM user WHERE user_id = 1;
+DELETE users FROM user;
 SELECT * FROM task WHERE user_id = 1;
